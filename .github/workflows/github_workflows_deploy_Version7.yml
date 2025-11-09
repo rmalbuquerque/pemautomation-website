@@ -1,16 +1,48 @@
-name: Deploy GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["gh-pages"]  # ou "main", dependendo do teu branch
+    branches: [ main ]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        # Se o seu repo tiver um nome diferente, ajuste VITE_BASE se necessário.
+        run: pnpm run build
+
+      - name: Ensure dist has .nojekyll and CNAME
+        run: |
+          if [ -d "./dist" ]; then
+            touch dist/.nojekyll
+            echo "www.pemautomation.pt" > dist/CNAME
+          fi
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          cname: www.pemautomation.pt
